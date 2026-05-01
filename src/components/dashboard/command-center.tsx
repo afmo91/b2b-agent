@@ -41,6 +41,34 @@ const businessImpact = [
   { label: "Deals à risque identifiés", value: "8" },
 ];
 
+const realityColumns = [
+  {
+    title: "V1 réelle",
+    items: [
+      "OpenAI connecté",
+      "analyse compte",
+      "génération séquence",
+      "analyse réponse",
+      "brief découverte",
+      "proposition commerciale",
+    ],
+  },
+  {
+    title: "Simulé en V1",
+    items: ["CRM Pipeline / Pipedrive", "Outbound Sequence", "Google Calendar"],
+  },
+  {
+    title: "V2 branchable",
+    items: [
+      "API Pipedrive",
+      "API Lemlist",
+      "Google Calendar API",
+      "webhooks réponses prospects",
+      "reporting commercial",
+    ],
+  },
+];
+
 export function CommandCenter({
   aiModeLabel,
   guidedStepLabel,
@@ -215,6 +243,39 @@ export function CommandCenter({
             </motion.div>
           );
         })}
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-950">Ce que montre cette démo</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Cette démo montre comment un agent IA peut s’intégrer au workflow commercial
+            existant d’Urban Circus : prospection grands comptes, qualification, séquences
+            outbound, prise de RDV, suivi CRM, préparation des visites et proposition
+            commerciale.
+          </p>
+        </div>
+
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-950">
+            Ce qui est réel aujourd’hui vs. ce qui sera branché ensuite
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {realityColumns.map((column) => (
+              <div key={column.title} className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <p className="text-sm font-semibold text-slate-950">{column.title}</p>
+                <ul className="mt-2 space-y-1.5 text-sm leading-5 text-slate-600">
+                  {column.items.map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-orange-500" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="mt-4">
