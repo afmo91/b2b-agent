@@ -177,10 +177,12 @@ export function SequenceStudio({
               <CardContent className="flex min-h-80 items-center justify-center p-6 text-center">
                 <div>
                   <WandSparkles className="mx-auto mb-3 size-8 text-orange-500" />
-                  <p className="font-medium text-slate-900">Séquence à générer</p>
+                  <p className="font-medium text-slate-900">
+                    Prêt à générer une séquence QHSE personnalisée pour VINCI Energies
+                  </p>
                   <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-                    Choisissez le persona, l’objectif et le ton pour créer 5 à 6 étapes
-                    multicanales adaptées aux grands comptes infrastructure.
+                    Email, LinkedIn, appel, relance et proposition de pilote terrain :
+                    l’agent prépare le contenu et la logique commerciale pour chaque étape.
                   </p>
                 </div>
               </CardContent>

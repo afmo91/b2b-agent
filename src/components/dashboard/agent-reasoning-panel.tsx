@@ -10,6 +10,7 @@ export type AgentMessage = {
   step: number;
   title: string;
   body: string;
+  gain?: string;
 };
 
 export function AgentReasoningPanel({
@@ -30,6 +31,7 @@ export function AgentReasoningPanel({
             step: 0,
             title: "Scénario prêt",
             body: "Lancez la démo guidée pour voir l’agent analyser VINCI Energies, préparer l’outbound, détecter un rendez-vous et alimenter le CRM simulé.",
+            gain: "Une démo sans état vide, prête à dérouler en rendez-vous client.",
           },
         ];
 
@@ -72,6 +74,12 @@ export function AgentReasoningPanel({
                 <p className="text-sm font-medium text-slate-950">{message.title}</p>
               </div>
               <p className="mt-1 text-sm leading-6 text-slate-600">{message.body}</p>
+              {message.gain ? (
+                <div className="mt-2 rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm text-emerald-900">
+                  <span className="font-medium">Ce que l’équipe gagne : </span>
+                  {message.gain}
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

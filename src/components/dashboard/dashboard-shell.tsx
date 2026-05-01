@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { AccountIntelligence } from "@/components/dashboard/account-intelligence";
 import type { AgentMessage } from "@/components/dashboard/agent-reasoning-panel";
 import { BeforeAfterSection } from "@/components/dashboard/before-after";
+import { BusinessCaseCard } from "@/components/dashboard/business-case-card";
 import { BuyingCommittee } from "@/components/dashboard/buying-committee";
 import { CommandCenter } from "@/components/dashboard/command-center";
 import { CrmPanel } from "@/components/dashboard/crm-panel";
@@ -80,6 +81,36 @@ const guidedSteps = [
   "Préparation proposition pilote 40 collaborateurs",
 ];
 
+const guidedStepGains = [
+  "Le commercial part d’un compte priorisé, pas d’une page blanche.",
+  "Le potentiel financier est cadré en quelques secondes pour décider où investir l’effort.",
+  "Le comité d’achat est lisible : QHSE, Achats et Opérations ont chacun un angle.",
+  "La liste de leads est prête avec contacts fictifs démo et angles par persona.",
+  "La séquence QHSE est personnalisée sans repartir d’un template générique.",
+  "L’équipe voit immédiatement quel signal mérite une action commerciale.",
+  "La réponse est qualifiée, routée et transformée en prochaine action CRM.",
+  "Le bon commercial et le bon créneau sont proposés sans aller-retour interne.",
+  "Le rendez-vous et l’activité CRM sont simulés proprement, sans API réelle.",
+  "Pipedrive reste propre : organisation, deal, notes et relances sont alignés.",
+  "Le commercial arrive en découverte avec questions, risques et signaux d’achat.",
+  "La proposition pilote est structurée pour passer du rendez-vous au business case.",
+];
+
+const guidedStepSections = [
+  "account",
+  "account",
+  "committee",
+  "leads",
+  "sequence",
+  "reply",
+  "reply",
+  "meeting",
+  "meeting",
+  "crm",
+  "discovery",
+  "proposal",
+];
+
 async function postAi<T>(url: string, payload: unknown): Promise<ApiEnvelope<T>> {
   const response = await fetch(url, {
     method: "POST",
@@ -133,6 +164,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
   const [guidedStepIndex, setGuidedStepIndex] = useState<number | null>(null);
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [presentationMode, setPresentationMode] = useState(false);
+  const [businessCaseVisible, setBusinessCaseVisible] = useState(false);
 
   const selectedAccount = useMemo(
     () => getAccount(selectedAccountName),
@@ -168,8 +200,17 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
         step,
         title,
         body,
+        gain: guidedStepGains[step],
       },
     ]);
+  }
+
+  function scrollToGuidedStep(step: number) {
+    window.setTimeout(() => {
+      document
+        .getElementById(guidedStepSections[step] ?? "command")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
   }
 
   function handleSelectAccount(accountName: string) {
@@ -184,6 +225,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     setActiveStage(pipelineStages[0]);
     setAgentMessages([]);
     setGuidedStepIndex(null);
+    setBusinessCaseVisible(false);
   }
 
   async function analyzeAccount(accountName = selectedAccountName) {
@@ -418,12 +460,24 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     setStructuredFieldNotes(null);
     setActiveStage(pipelineStages[0]);
     setAgentMessages([]);
+    setGuidedStepIndex(null);
+    setBusinessCaseVisible(false);
+  }
+
+  function resetDemo() {
+    resetVinciScenario();
+    window.setTimeout(() => {
+      document
+        .getElementById("command")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
   }
 
   async function executeGuidedStep(step: number) {
     setAppError(null);
 
     if (step === 0) {
+      setActiveStage("Cible identifiée");
       addAgentMessage(
         step,
         guidedSteps[step],
@@ -434,6 +488,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     } else if (step === 1) {
       const analysis = accountAnalysis ?? mockAccountAnalysis("VINCI Energies");
       setAccountAnalysis(analysis);
+      setActiveStage("Cible identifiée");
       addAgentMessage(
         step,
         guidedSteps[step],
@@ -445,6 +500,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
         "agent",
       );
     } else if (step === 2) {
+      setActiveStage("Contact enrichi");
       addAgentMessage(
         step,
         guidedSteps[step],
@@ -464,6 +520,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
       );
     } else if (step === 4) {
       setSequencePersona("Responsable QHSE");
+      setActiveStage("Séquence lancée");
       addAgentMessage(
         step,
         guidedSteps[step],
@@ -486,6 +543,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
       );
       addEvent("Réponse chaude détectée", "Le prospect signale un chantier de renouvellement de dotation.", "outbound");
     } else if (step === 6) {
+      setActiveStage("Réponse reçue");
       addAgentMessage(
         step,
         guidedSteps[step],
@@ -495,6 +553,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     } else if (step === 7) {
       setSelectedSalesRep("Clara");
       setSelectedSlot("Mercredi 14h00");
+      setActiveStage("Réponse reçue");
       addAgentMessage(
         step,
         guidedSteps[step],
@@ -504,6 +563,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     } else if (step === 8) {
       setSelectedSalesRep("Clara");
       setSelectedSlot("Mercredi 14h00");
+      setActiveStage("RDV découverte");
       addAgentMessage(
         step,
         guidedSteps[step],
@@ -519,6 +579,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
       createInCrm("VINCI Energies");
       setActiveStage("RDV découverte");
     } else if (step === 10) {
+      setActiveStage("RDV découverte");
       addAgentMessage(
         step,
         guidedSteps[step],
@@ -526,15 +587,18 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
       );
       await generateDiscoveryBrief("VINCI Energies");
     } else if (step === 11) {
+      setActiveStage("Proposition envoyée");
       addAgentMessage(
         step,
         guidedSteps[step],
         "La proposition pilote est structurée autour de 40 collaborateurs, avec extension vers 350 techniciens et trajectoire contrat cadre.",
       );
       await generateProposal("VINCI Energies");
+      setBusinessCaseVisible(true);
     }
 
     setGuidedStepIndex(step);
+    scrollToGuidedStep(step);
   }
 
   async function startGuidedDemo() {
@@ -553,6 +617,12 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
         "Le scénario VINCI Energies est prêt pour discussion : fit, leads, séquence, réponse chaude, RDV, CRM, brief et proposition pilote.",
       );
       setGuidedStepIndex(null);
+      setBusinessCaseVisible(true);
+      window.setTimeout(() => {
+        document
+          .getElementById("business-case")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
       return;
     }
 
@@ -607,6 +677,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     });
     setActiveStage("Proposition envoyée");
     setGuidedStepIndex(guidedSteps.length - 1);
+    setBusinessCaseVisible(true);
     setAgentMessages(
       guidedSteps.map((step, index) => ({
         id: `loaded-${index}`,
@@ -618,6 +689,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
             : index === 11
               ? "Proposition pilote 40 collaborateurs prête, avec extension 350 collaborateurs et relances."
               : "Étape du scénario VINCI Energies préremplie pour une démo fluide.",
+        gain: guidedStepGains[index],
       })),
     );
     setTimeline([
@@ -693,6 +765,11 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
       },
       initialTimeline[0],
     ]);
+    window.setTimeout(() => {
+      document
+        .getElementById("command")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
   }
 
   return (
@@ -710,6 +787,11 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
                 guidedProgress={guidedProgress}
                 guidedStep={guidedStepIndex}
                 guidedStepTotal={guidedSteps.length}
+                guidedGain={
+                  guidedStepIndex === null
+                    ? "Une démonstration prête à dérouler sans état vide."
+                    : guidedStepGains[guidedStepIndex]
+                }
                 guidedStepLabel={
                   guidedStepIndex === null ? "Scénario guidé prêt" : guidedSteps[guidedStepIndex]
                 }
@@ -717,6 +799,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
                 presentationMode={presentationMode}
                 onTogglePresentation={() => setPresentationMode((current) => !current)}
                 onLoadFullScenario={loadFullVinciScenario}
+                onResetDemo={resetDemo}
                 onStartGuidedDemo={startGuidedDemo}
                 onNextGuidedStep={nextGuidedStep}
               />
@@ -749,17 +832,15 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
                 onCreateLeads={() => createLeads()}
               />
 
-              {!presentationMode ? (
-                <LeadListBuilder
-                  leads={leads}
-                  salesReps={salesReps}
-                  selectedSalesRep={selectedSalesRep}
-                  onSelectSalesRep={setSelectedSalesRep}
-                  onCreateInCrm={() => createInCrm()}
-                  onPrepareSequence={() => generateSequence()}
-                  onAssignSalesRep={assignSalesRep}
-                />
-              ) : null}
+              <LeadListBuilder
+                leads={leads}
+                salesReps={salesReps}
+                selectedSalesRep={selectedSalesRep}
+                onSelectSalesRep={setSelectedSalesRep}
+                onCreateInCrm={() => createInCrm()}
+                onPrepareSequence={() => generateSequence()}
+                onAssignSalesRep={assignSalesRep}
+              />
 
               <SequenceStudio
                 accountName={selectedAccountName}
@@ -831,6 +912,8 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
                 onNotesChange={setProposalNotes}
                 onGenerate={() => generateProposal()}
               />
+
+              <BusinessCaseCard visible={businessCaseVisible} />
             </div>
 
             <div className="hidden xl:block">

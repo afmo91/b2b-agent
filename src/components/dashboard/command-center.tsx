@@ -7,6 +7,7 @@ import {
   MailPlus,
   MonitorUp,
   Play,
+  RotateCcw,
   Target,
   TrendingUp,
   Users,
@@ -45,11 +46,13 @@ export function CommandCenter({
   guidedStepLabel,
   onStartGuidedDemo,
   onNextGuidedStep,
+  onResetDemo,
   guidedActive,
   guidedLoading,
   guidedProgress,
   guidedStep,
   guidedStepTotal,
+  guidedGain,
   agentMessages,
   onLoadFullScenario,
   presentationMode,
@@ -59,11 +62,13 @@ export function CommandCenter({
   guidedStepLabel: string;
   onStartGuidedDemo: () => void;
   onNextGuidedStep: () => void;
+  onResetDemo: () => void;
   guidedActive: boolean;
   guidedLoading: boolean;
   guidedProgress: number;
   guidedStep: number | null;
   guidedStepTotal: number;
+  guidedGain: string;
   agentMessages: AgentMessage[];
   onLoadFullScenario: () => void;
   presentationMode: boolean;
@@ -96,6 +101,10 @@ export function CommandCenter({
             De la prospection grands comptes au rendez-vous qualifié : un agent IA pour
             prioriser, personnaliser, relancer et garder Pipedrive à jour.
           </p>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+            À chaque interaction, l’agent analyse le contexte, recommande la prochaine
+            action, prépare le contenu commercial et crée les activités CRM nécessaires.
+          </p>
           {!presentationMode ? (
             <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2">
               <div className="rounded-md border border-orange-100 bg-orange-50 p-3">
@@ -116,6 +125,10 @@ export function CommandCenter({
             <Button variant="outline" size="lg" onClick={onLoadFullScenario}>
               Charger scénario complet VINCI Energies
             </Button>
+            <Button variant="ghost" size="lg" onClick={onResetDemo}>
+              <RotateCcw />
+              Reset démo
+            </Button>
             {guidedActive ? (
               <Button
                 variant="outline"
@@ -130,10 +143,16 @@ export function CommandCenter({
           {guidedActive ? (
             <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium text-slate-900">{guidedStepLabel}</span>
-                <span className="text-slate-500">{guidedStepTotal} étapes</span>
+                <span className="font-medium text-slate-900">
+                  Étape {(guidedStep ?? 0) + 1}/{guidedStepTotal} — {guidedStepLabel}
+                </span>
+                <span className="text-slate-500">Démo guidée</span>
               </div>
               <Progress value={guidedProgress} className="mt-3" />
+              <div className="mt-3 rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm text-emerald-900">
+                <span className="font-medium">Ce que l’équipe gagne à cette étape : </span>
+                {guidedGain}
+              </div>
             </div>
           ) : null}
         </div>

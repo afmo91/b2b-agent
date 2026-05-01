@@ -153,10 +153,12 @@ export function AccountIntelligence({
               <CardContent className="flex min-h-72 items-center justify-center p-6 text-center">
                 <div>
                   <Brain className="mx-auto mb-3 size-8 text-orange-500" />
-                  <p className="font-medium text-slate-900">Analyse prête</p>
+                  <p className="font-medium text-slate-900">
+                    Prêt à scorer VINCI Energies en contexte grand compte
+                  </p>
                   <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-                    Sélectionnez un grand compte puis lancez l’analyse pour obtenir score,
-                    angles, objections et activité CRM suggérée.
+                    L’agent va relier équipes terrain, météo, sécurité, visibilité,
+                    comité d’achat et potentiel contrat cadre.
                   </p>
                 </div>
               </CardContent>

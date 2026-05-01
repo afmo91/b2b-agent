@@ -112,7 +112,8 @@ export function LeadListBuilder({
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-slate-500">
-                  Créez la liste depuis le Buying Committee Mapper.
+                  Prêt à afficher les leads fictifs démo VINCI Energies : QHSE, Achats,
+                  RH, Opérations, Dotation et Prévention.
                 </TableCell>
               </TableRow>
             )}

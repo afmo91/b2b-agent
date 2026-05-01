@@ -113,9 +113,12 @@ export function ProposalAssistant({
             <CardContent className="flex min-h-80 items-center justify-center p-6 text-center">
               <div>
                 <FilePenLine className="mx-auto mb-3 size-8 text-orange-500" />
-                <p className="font-medium text-slate-900">Proposition en attente</p>
+                <p className="font-medium text-slate-900">
+                  Prêt à transformer le brief en proposition pilote
+                </p>
                 <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-                  L’agent prépare l’offre, le pilote, le plan de déploiement et les relances.
+                  L’agent prépare le pilote 40 collaborateurs, l’extension 350 techniciens,
+                  les objections achats et le plan de relance.
                 </p>
               </div>
             </CardContent>

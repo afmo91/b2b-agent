@@ -124,9 +124,12 @@ export function ReplyIntelligence({
             <CardContent className="flex min-h-80 items-center justify-center p-6 text-center">
               <div>
                 <Bot className="mx-auto mb-3 size-8 text-orange-500" />
-                <p className="font-medium text-slate-900">Analyse en attente</p>
+                <p className="font-medium text-slate-900">
+                  Prêt à qualifier une réponse chaude VINCI Energies
+                </p>
                 <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-                  L’agent classe l’intention, la température et prépare la meilleure action CRM.
+                  L’agent détecte l’intention, classe la température, propose la réponse
+                  commerciale et prépare l’activité CRM à créer.
                 </p>
               </div>
             </CardContent>

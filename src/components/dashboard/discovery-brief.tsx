@@ -115,9 +115,12 @@ export function DiscoveryBriefSection({
             <CardContent className="flex min-h-80 items-center justify-center p-6 text-center">
               <div>
                 <ClipboardCheck className="mx-auto mb-3 size-8 text-orange-500" />
-                <p className="font-medium text-slate-900">Brief en attente</p>
+                <p className="font-medium text-slate-900">
+                  Prêt à préparer le rendez-vous découverte
+                </p>
                 <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-                  Le brief prépare questions, risques, signaux d’achat et passage à la visite terrain.
+                  Questions QHSE, volumes, météo, tailles, sites, budget, décisionnaires
+                  et critères pilote sont structurés pour Clara.
                 </p>
               </div>
             </CardContent>
