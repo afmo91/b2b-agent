@@ -4,6 +4,8 @@ import { AlertCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { AccountIntelligence } from "@/components/dashboard/account-intelligence";
+import type { AgentMessage } from "@/components/dashboard/agent-reasoning-panel";
+import { BeforeAfterSection } from "@/components/dashboard/before-after";
 import { BuyingCommittee } from "@/components/dashboard/buying-committee";
 import { CommandCenter } from "@/components/dashboard/command-center";
 import { CrmPanel } from "@/components/dashboard/crm-panel";
@@ -13,6 +15,7 @@ import {
   type StructuredFieldNotes,
 } from "@/components/dashboard/field-visit";
 import { LeadListBuilder } from "@/components/dashboard/lead-list-builder";
+import { LiveTimeline } from "@/components/dashboard/live-timeline";
 import { MeetingBooker } from "@/components/dashboard/meeting-booker";
 import { MobileNav, Sidebar } from "@/components/dashboard/sidebar";
 import { ProposalAssistant } from "@/components/dashboard/proposal-assistant";
@@ -34,6 +37,11 @@ import {
   calendarSlots,
   demoAccounts,
   getAccount,
+  mockAccountAnalysis,
+  mockDiscoveryBrief,
+  mockProposal,
+  mockReplyAnalysis,
+  mockSequence,
   pipelineStages,
   prospectReplies,
   salesReps,
@@ -56,6 +64,21 @@ const proposalSeed =
 
 const fieldSeed =
   "Équipes terrain exposées pluie et nuit. Besoin de poches accessibles, liberté de mouvement, logo visible mais sobre, lavage fréquent, tailles variées et validation QHSE avant extension.";
+
+const guidedSteps = [
+  "Analyse VINCI Energies",
+  "Score et potentiel contrat cadre",
+  "Mapping décideurs QHSE / Achats / Opérations",
+  "Création leads fictifs démo",
+  "Génération séquence Responsable QHSE",
+  "Simulation réponse chaude",
+  "Analyse de réponse",
+  "Proposition RDV avec Clara",
+  "Création RDV Google Calendar simulé",
+  "Mise à jour CRM simulée",
+  "Génération brief découverte",
+  "Préparation proposition pilote 40 collaborateurs",
+];
 
 async function postAi<T>(url: string, payload: unknown): Promise<ApiEnvelope<T>> {
   const response = await fetch(url, {
@@ -108,6 +131,8 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [appError, setAppError] = useState<string | null>(null);
   const [guidedStepIndex, setGuidedStepIndex] = useState<number | null>(null);
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
+  const [presentationMode, setPresentationMode] = useState(false);
 
   const selectedAccount = useMemo(
     () => getAccount(selectedAccountName),
@@ -116,19 +141,11 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
 
   const aiModeLabel = aiMode === "mock" ? "Mode démo local" : "OpenAI connecté";
   const guidedActive = guidedStepIndex !== null;
-  const guidedLoading = loadingAction === "guided";
+  const guidedLoading = loadingAction !== null;
   const guidedProgress =
-    guidedStepIndex === null ? 0 : Math.min(100, Math.round(((guidedStepIndex + 1) / 8) * 100));
-  const guidedStepLabels = [
-    "VINCI Energies sélectionné. Analyse compte lancée.",
-    "Étape suivante : créer les leads fictifs et logger l’organisation dans le CRM.",
-    "Étape suivante : générer une séquence QHSE multicanale.",
-    "Étape suivante : analyser une réponse chaude simulée.",
-    "Étape suivante : créer le RDV calendrier et générer le brief découverte.",
-    "Étape suivante : structurer la visite terrain.",
-    "Étape suivante : préparer la proposition pilote.",
-    "Démo guidée terminée : le deal est prêt pour suivi commercial.",
-  ];
+    guidedStepIndex === null
+      ? 0
+      : Math.min(100, Math.round(((guidedStepIndex + 1) / guidedSteps.length) * 100));
 
   function addEvent(label: string, detail: string, tone: CrmEvent["tone"] = "agent") {
     setTimeline((current) => [
@@ -143,6 +160,18 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     ]);
   }
 
+  function addAgentMessage(step: number, title: string, body: string) {
+    setAgentMessages((current) => [
+      ...current,
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        step,
+        title,
+        body,
+      },
+    ]);
+  }
+
   function handleSelectAccount(accountName: string) {
     setSelectedAccountName(accountName);
     setAccountAnalysis(null);
@@ -153,6 +182,8 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     setDiscoveryBrief(null);
     setProposal(null);
     setActiveStage(pipelineStages[0]);
+    setAgentMessages([]);
+    setGuidedStepIndex(null);
   }
 
   async function analyzeAccount(accountName = selectedAccountName) {
@@ -263,7 +294,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
       setReplyAnalysis(result.data);
       setActiveStage("Réponse reçue");
       addEvent(
-        "Réponse détectée",
+        result.data.temperature === "Chaud" ? "Réponse chaude détectée" : "Réponse détectée",
         `Température ${result.data.temperature}. Action recommandée : ${result.data.recommendedNextAction}`,
         "agent",
       );
@@ -289,7 +320,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
       setAiMode(result.mode);
       setDiscoveryBrief(result.data);
       addEvent(
-        "Note IA ajoutée",
+        "Brief découverte généré",
         `Brief découverte généré pour ${accountName}.`,
         "agent",
       );
@@ -300,13 +331,15 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     }
   }
 
-  async function createMeeting(accountName = selectedAccountName) {
+  async function createMeeting(accountName = selectedAccountName, autoBrief = true) {
     setMeetingCreated(true);
     setActiveStage("RDV découverte");
     addEvent("RDV proposé", `${selectedRepLabel()} proposé sur ${selectedSlot}.`, "calendar");
     addEvent("RDV créé", `Invitation calendrier simulée pour ${selectedSlot}.`, "calendar");
     addEvent("Étape pipeline mise à jour", "Pipeline passé à RDV découverte planifié.", "crm");
-    await generateDiscoveryBrief(accountName);
+    if (autoBrief) {
+      await generateDiscoveryBrief(accountName);
+    }
   }
 
   function structureFieldNotes() {
@@ -355,7 +388,7 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
       setAiMode(result.mode);
       setProposal(result.data);
       setActiveStage("Proposition envoyée");
-      addEvent("Proposition à préparer", "Proposition pilote et plan de relance générés.", "agent");
+      addEvent("Proposition pilote préparée", "Proposition pilote et plan de relance générés.", "agent");
     } catch {
       setAppError("Impossible de préparer la proposition pour le moment.");
     } finally {
@@ -367,66 +400,299 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
     return `${selectedSalesRep} — ${salesReps.find((rep) => rep.name === selectedSalesRep)?.focus ?? "commercial"}`;
   }
 
-  async function startGuidedDemo() {
-    setLoadingAction("guided");
+  function resetVinciScenario() {
     setTimeline(initialTimeline);
     setSelectedAccountName("VINCI Energies");
+    setAccountAnalysis(null);
+    setLeads([]);
+    setSequence(null);
+    setReplyAnalysis(null);
     setSequencePersona("Responsable QHSE");
     setSequenceObjective("obtenir rendez-vous découverte");
     setSequenceTone("consultatif");
     setDiscoveryPersona("Responsable QHSE");
     setReplyText(prospectReplies[0].body);
     setMeetingCreated(false);
+    setDiscoveryBrief(null);
     setProposal(null);
     setStructuredFieldNotes(null);
-    setGuidedStepIndex(0);
-    addEvent("Démo guidée démarrée", "VINCI Energies sélectionné pour le parcours commercial.", "agent");
-    setLoadingAction(null);
-    await analyzeAccount("VINCI Energies");
-    setGuidedStepIndex(1);
+    setActiveStage(pipelineStages[0]);
+    setAgentMessages([]);
   }
 
-  async function nextGuidedStep() {
-    if (guidedStepIndex === null) {
-      return;
-    }
+  async function executeGuidedStep(step: number) {
+    setAppError(null);
 
-    setLoadingAction("guided");
-
-    if (guidedStepIndex === 1) {
+    if (step === 0) {
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "L’agent sélectionne VINCI Energies et lance l’analyse de fit Urban Circus : équipes terrain, météo, sécurité, visibilité et potentiel multi-sites.",
+      );
+      addEvent("Démo guidée démarrée", "VINCI Energies sélectionné pour le parcours commercial.", "agent");
+      await analyzeAccount("VINCI Energies");
+    } else if (step === 1) {
+      const analysis = accountAnalysis ?? mockAccountAnalysis("VINCI Energies");
+      setAccountAnalysis(analysis);
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "Score 91/100 : le potentiel est porté par les équipes terrain exposées, la répétition multi-sites et une trajectoire pilote → contrat cadre.",
+      );
+      addEvent(
+        "Score et potentiel contrat cadre",
+        "Potentiel estimé : pilote 12–18 k€, régional 60–110 k€, contrat cadre 250 k€+.",
+        "agent",
+      );
+    } else if (step === 2) {
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "L’agent priorise le binôme QHSE / Achats, puis ajoute Opérations comme sponsor terrain pour sécuriser le pilote.",
+      );
+      addEvent(
+        "Décideurs mappés",
+        "QHSE, Achats, Opérations et Dotation identifiés comme comité d’achat prioritaire.",
+        "agent",
+      );
+    } else if (step === 3) {
       createLeads("VINCI Energies");
-      createInCrm("VINCI Energies");
-      setGuidedStepIndex(2);
-    } else if (guidedStepIndex === 2) {
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "La liste de leads fictifs démo est créée avec angles d’approche par persona. Aucun vrai contact privé n’est généré.",
+      );
+    } else if (step === 4) {
       setSequencePersona("Responsable QHSE");
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "La séquence QHSE met en avant visibilité, sécurité, confort météo et pilote 40 collaborateurs avant déploiement.",
+      );
       await generateSequence({
         accountName: "VINCI Energies",
         persona: "Responsable QHSE",
         objective: "obtenir rendez-vous découverte",
         tone: "consultatif",
       });
-      setGuidedStepIndex(3);
-    } else if (guidedStepIndex === 3) {
+    } else if (step === 5) {
       const warmReply = prospectReplies[0].body;
       setReplyText(warmReply);
-      await analyzeReply(warmReply, "VINCI Energies");
-      setGuidedStepIndex(4);
-    } else if (guidedStepIndex === 4) {
+      setActiveStage("Réponse reçue");
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "Une réponse chaude est simulée : le prospect mentionne un renouvellement de dotation et demande plus d’informations.",
+      );
+      addEvent("Réponse chaude détectée", "Le prospect signale un chantier de renouvellement de dotation.", "outbound");
+    } else if (step === 6) {
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "L’agent classe l’intention comme chaude et prépare une réponse orientée rendez-vous découverte, sans envoi réel.",
+      );
+      await analyzeReply(prospectReplies[0].body, "VINCI Energies");
+    } else if (step === 7) {
       setSelectedSalesRep("Clara");
       setSelectedSlot("Mercredi 14h00");
-      await createMeeting("VINCI Energies");
-      setGuidedStepIndex(5);
-    } else if (guidedStepIndex === 5) {
-      structureFieldNotes();
-      setGuidedStepIndex(6);
-    } else if (guidedStepIndex === 6) {
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "Clara est recommandée pour son focus infrastructure / comptes terrain. Le créneau Mercredi 14h00 est proposé.",
+      );
+      addEvent("RDV proposé", "Clara — Mercredi 14h00 proposé au prospect en simulation.", "calendar");
+    } else if (step === 8) {
+      setSelectedSalesRep("Clara");
+      setSelectedSlot("Mercredi 14h00");
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "Le rendez-vous est créé dans le calendrier simulé. Invitation et activité CRM sont préparées, sans appel Google Calendar réel.",
+      );
+      await createMeeting("VINCI Energies", false);
+    } else if (step === 9) {
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "L’organisation, le deal, les notes IA et les prochaines activités sont loggés dans le CRM simulé pour garder Pipedrive propre.",
+      );
+      createInCrm("VINCI Energies");
+      setActiveStage("RDV découverte");
+    } else if (step === 10) {
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "Le brief découverte prépare les questions sur volumes, météo, visibilité, tailles, sites, budget, calendrier achat et décisionnaires.",
+      );
+      await generateDiscoveryBrief("VINCI Energies");
+    } else if (step === 11) {
+      addAgentMessage(
+        step,
+        guidedSteps[step],
+        "La proposition pilote est structurée autour de 40 collaborateurs, avec extension vers 350 techniciens et trajectoire contrat cadre.",
+      );
       await generateProposal("VINCI Energies");
-      setGuidedStepIndex(7);
-    } else {
-      setGuidedStepIndex(null);
     }
 
-    setLoadingAction(null);
+    setGuidedStepIndex(step);
+  }
+
+  async function startGuidedDemo() {
+    resetVinciScenario();
+    setGuidedStepIndex(null);
+    await executeGuidedStep(0);
+  }
+
+  async function nextGuidedStep() {
+    const nextStep = guidedStepIndex === null ? 0 : guidedStepIndex + 1;
+
+    if (nextStep >= guidedSteps.length) {
+      addAgentMessage(
+        guidedSteps.length,
+        "Démo guidée terminée",
+        "Le scénario VINCI Energies est prêt pour discussion : fit, leads, séquence, réponse chaude, RDV, CRM, brief et proposition pilote.",
+      );
+      setGuidedStepIndex(null);
+      return;
+    }
+
+    await executeGuidedStep(nextStep);
+  }
+
+  function loadFullVinciScenario() {
+    const analysis = mockAccountAnalysis("VINCI Energies");
+    const nextLeads = buildDemoLeads("VINCI Energies");
+    const nextSequence = mockSequence(
+      "VINCI Energies",
+      "Responsable QHSE",
+      "obtenir rendez-vous découverte",
+      "consultatif",
+    );
+    const nextReplyAnalysis = mockReplyAnalysis("VINCI Energies", prospectReplies[0].body);
+    const nextBrief = mockDiscoveryBrief("VINCI Energies", "Responsable QHSE");
+    const nextProposal = mockProposal("VINCI Energies");
+
+    setSelectedAccountName("VINCI Energies");
+    setAccountAnalysis(analysis);
+    setLeads(nextLeads);
+    setSequencePersona("Responsable QHSE");
+    setSequenceObjective("obtenir rendez-vous découverte");
+    setSequenceTone("consultatif");
+    setSequence(nextSequence);
+    setReplyText(prospectReplies[0].body);
+    setReplyAnalysis(nextReplyAnalysis);
+    setSelectedSalesRep("Clara");
+    setSelectedSlot("Mercredi 14h00");
+    setMeetingCreated(true);
+    setDiscoveryPersona("Responsable QHSE");
+    setDiscoveryBrief(nextBrief);
+    setProposal(nextProposal);
+    setStructuredFieldNotes({
+      summary:
+        "La visite terrain confirme un besoin pilote sur techniciens exposés pluie/nuit avant extension multi-sites.",
+      technicalConstraints: [
+        "Visibilité jour/nuit",
+        "Protection pluie et confort thermique",
+        "Personnalisation logo",
+        "Tailles et morphologies variées",
+      ],
+      recommendedProducts: [
+        "Veste visibilité renforcée",
+        "Protection pluie",
+        "Couche thermique",
+        "Pack pilote terrain",
+      ],
+      risks: ["Validation QHSE", "Référencement fournisseur", "Déploiement multi-sites"],
+      proposalInputs: ["Pilote 40 collaborateurs", "Extension 350 collaborateurs", "Contrat cadre multi-sites"],
+    });
+    setActiveStage("Proposition envoyée");
+    setGuidedStepIndex(guidedSteps.length - 1);
+    setAgentMessages(
+      guidedSteps.map((step, index) => ({
+        id: `loaded-${index}`,
+        step: index,
+        title: step,
+        body:
+          index === 0
+            ? "Analyse VINCI Energies chargée avec score, besoin probable et prochaine action."
+            : index === 11
+              ? "Proposition pilote 40 collaborateurs prête, avec extension 350 collaborateurs et relances."
+              : "Étape du scénario VINCI Energies préremplie pour une démo fluide.",
+      })),
+    );
+    setTimeline([
+      {
+        id: "loaded-proposal",
+        label: "Proposition pilote préparée",
+        detail: "Pilote 40 collaborateurs et extension 350 techniciens structurés.",
+        timestamp: nowLabel(),
+        tone: "agent",
+      },
+      {
+        id: "loaded-brief",
+        label: "Brief découverte généré",
+        detail: "Questions, risques, signaux d’achat et handoff expert terrain prêts.",
+        timestamp: nowLabel(),
+        tone: "agent",
+      },
+      {
+        id: "loaded-note",
+        label: "Note IA ajoutée",
+        detail: "Fit Urban Circus, objections et prochaine action loggés.",
+        timestamp: nowLabel(),
+        tone: "agent",
+      },
+      {
+        id: "loaded-meeting",
+        label: "RDV créé",
+        detail: "Clara — Mercredi 14h00. Invitation calendrier simulée.",
+        timestamp: nowLabel(),
+        tone: "calendar",
+      },
+      {
+        id: "loaded-reply",
+        label: "Réponse chaude détectée",
+        detail: "Renouvellement de dotation identifié dans la réponse prospect.",
+        timestamp: nowLabel(),
+        tone: "outbound",
+      },
+      {
+        id: "loaded-sequence",
+        label: "Séquence préparée",
+        detail: "Séquence Responsable QHSE générée avec 6 étapes multicanales.",
+        timestamp: nowLabel(),
+        tone: "outbound",
+      },
+      {
+        id: "loaded-deal",
+        label: "Deal créé",
+        detail: "Deal pilote terrain ouvert dans CRM Pipeline simulé.",
+        timestamp: nowLabel(),
+        tone: "crm",
+      },
+      {
+        id: "loaded-contacts",
+        label: "Contacts ajoutés",
+        detail: "7 contacts fictifs démo créés et marqués comme tels.",
+        timestamp: nowLabel(),
+        tone: "crm",
+      },
+      {
+        id: "loaded-org",
+        label: "Organisation créée",
+        detail: "VINCI Energies créé dans le CRM simulé.",
+        timestamp: nowLabel(),
+        tone: "crm",
+      },
+      {
+        id: "loaded-account",
+        label: "Compte analysé",
+        detail: "VINCI Energies scoré 91/100, priorité Très haute.",
+        timestamp: nowLabel(),
+        tone: "agent",
+      },
+      initialTimeline[0],
+    ]);
   }
 
   return (
@@ -435,119 +701,143 @@ export function DashboardShell({ initialAiMode }: { initialAiMode: AiMode }) {
       <div className="flex">
         <Sidebar aiModeLabel={aiModeLabel} />
         <main className="min-w-0 flex-1">
-          <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 py-6 sm:px-6 lg:px-8">
-            <CommandCenter
-              aiModeLabel={aiModeLabel}
-              guidedActive={guidedActive}
-              guidedLoading={guidedLoading}
-              guidedProgress={guidedProgress}
-              guidedStepLabel={
-                guidedStepIndex === null ? "" : guidedStepLabels[guidedStepIndex]
-              }
-              onStartGuidedDemo={startGuidedDemo}
-              onNextGuidedStep={nextGuidedStep}
-            />
+          <div className="mx-auto grid max-w-[1680px] gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className={`flex min-w-0 flex-col ${presentationMode ? "gap-8" : "gap-10"}`}>
+              <CommandCenter
+                aiModeLabel={aiModeLabel}
+                guidedActive={guidedActive}
+                guidedLoading={guidedLoading}
+                guidedProgress={guidedProgress}
+                guidedStep={guidedStepIndex}
+                guidedStepTotal={guidedSteps.length}
+                guidedStepLabel={
+                  guidedStepIndex === null ? "Scénario guidé prêt" : guidedSteps[guidedStepIndex]
+                }
+                agentMessages={agentMessages}
+                presentationMode={presentationMode}
+                onTogglePresentation={() => setPresentationMode((current) => !current)}
+                onLoadFullScenario={loadFullVinciScenario}
+                onStartGuidedDemo={startGuidedDemo}
+                onNextGuidedStep={nextGuidedStep}
+              />
 
-            {appError ? (
-              <Alert className="border-red-200 bg-red-50 text-red-950">
-                <AlertCircle className="text-red-700" />
-                <AlertTitle>Action interrompue</AlertTitle>
-                <AlertDescription>{appError}</AlertDescription>
-              </Alert>
-            ) : null}
+              {appError ? (
+                <Alert className="border-red-200 bg-red-50 text-red-950">
+                  <AlertCircle className="text-red-700" />
+                  <AlertTitle>Action interrompue</AlertTitle>
+                  <AlertDescription>{appError}</AlertDescription>
+                </Alert>
+              ) : null}
 
-            <AccountIntelligence
-              accounts={demoAccounts}
-              selectedAccount={selectedAccount}
-              selectedAccountName={selectedAccountName}
-              analysis={accountAnalysis}
-              loading={loadingAction === "account"}
-              onSelectAccount={handleSelectAccount}
-              onAnalyze={() => analyzeAccount()}
-            />
+              <BeforeAfterSection presentationMode={presentationMode} />
 
-            <BuyingCommittee
-              accountName={selectedAccountName}
-              personas={buyingPersonas}
-              leads={leads}
-              onCreateLeads={() => createLeads()}
-            />
+              <AccountIntelligence
+                accounts={demoAccounts}
+                selectedAccount={selectedAccount}
+                selectedAccountName={selectedAccountName}
+                analysis={accountAnalysis}
+                loading={loadingAction === "account"}
+                presentationMode={presentationMode}
+                onSelectAccount={handleSelectAccount}
+                onAnalyze={() => analyzeAccount()}
+              />
 
-            <LeadListBuilder
-              leads={leads}
-              salesReps={salesReps}
-              selectedSalesRep={selectedSalesRep}
-              onSelectSalesRep={setSelectedSalesRep}
-              onCreateInCrm={() => createInCrm()}
-              onPrepareSequence={() => generateSequence()}
-              onAssignSalesRep={assignSalesRep}
-            />
+              <BuyingCommittee
+                accountName={selectedAccountName}
+                personas={buyingPersonas}
+                leads={leads}
+                onCreateLeads={() => createLeads()}
+              />
 
-            <SequenceStudio
-              accountName={selectedAccountName}
-              persona={sequencePersona}
-              objective={sequenceObjective}
-              tone={sequenceTone}
-              sequence={sequence}
-              loading={loadingAction === "sequence"}
-              onPersonaChange={setSequencePersona}
-              onObjectiveChange={setSequenceObjective}
-              onToneChange={setSequenceTone}
-              onGenerate={() => generateSequence()}
-              onSimulateSend={simulateOutboundSend}
-            />
+              {!presentationMode ? (
+                <LeadListBuilder
+                  leads={leads}
+                  salesReps={salesReps}
+                  selectedSalesRep={selectedSalesRep}
+                  onSelectSalesRep={setSelectedSalesRep}
+                  onCreateInCrm={() => createInCrm()}
+                  onPrepareSequence={() => generateSequence()}
+                  onAssignSalesRep={assignSalesRep}
+                />
+              ) : null}
 
-            <ReplyIntelligence
-              replies={prospectReplies}
-              replyText={replyText}
-              analysis={replyAnalysis}
-              loading={loadingAction === "reply"}
-              onReplyTextChange={setReplyText}
-              onSelectReply={setReplyText}
-              onAnalyze={() => analyzeReply()}
-            />
+              <SequenceStudio
+                accountName={selectedAccountName}
+                persona={sequencePersona}
+                objective={sequenceObjective}
+                tone={sequenceTone}
+                sequence={sequence}
+                loading={loadingAction === "sequence"}
+                onPersonaChange={setSequencePersona}
+                onObjectiveChange={setSequenceObjective}
+                onToneChange={setSequenceTone}
+                onGenerate={() => generateSequence()}
+                onSimulateSend={simulateOutboundSend}
+              />
 
-            <MeetingBooker
-              salesReps={salesReps}
-              slots={calendarSlots}
-              selectedRep={selectedSalesRep}
-              selectedSlot={selectedSlot}
-              meetingCreated={meetingCreated}
-              onSelectRep={setSelectedSalesRep}
-              onSelectSlot={setSelectedSlot}
-              onCreateMeeting={() => createMeeting()}
-            />
+              <ReplyIntelligence
+                replies={prospectReplies}
+                replyText={replyText}
+                analysis={replyAnalysis}
+                loading={loadingAction === "reply"}
+                onReplyTextChange={setReplyText}
+                onSelectReply={setReplyText}
+                onAnalyze={() => analyzeReply()}
+              />
 
-            <CrmPanel timeline={timeline} stages={pipelineStages} activeStage={activeStage} />
+              <MeetingBooker
+                salesReps={salesReps}
+                slots={calendarSlots}
+                selectedRep={selectedSalesRep}
+                selectedSlot={selectedSlot}
+                meetingCreated={meetingCreated}
+                briefGenerated={Boolean(discoveryBrief)}
+                onSelectRep={setSelectedSalesRep}
+                onSelectSlot={setSelectedSlot}
+                onCreateMeeting={() => createMeeting()}
+              />
 
-            <DiscoveryBriefSection
-              accountName={selectedAccountName}
-              persona={discoveryPersona}
-              context={discoveryContext}
-              notes={discoveryNotes}
-              brief={discoveryBrief}
-              loading={loadingAction === "discovery"}
-              onPersonaChange={setDiscoveryPersona}
-              onContextChange={setDiscoveryContext}
-              onNotesChange={setDiscoveryNotes}
-              onGenerate={() => generateDiscoveryBrief()}
-            />
+              {!presentationMode ? (
+                <CrmPanel timeline={timeline} stages={pipelineStages} activeStage={activeStage} />
+              ) : null}
 
-            <FieldVisitAssistant
-              notes={fieldNotes}
-              structuredNotes={structuredFieldNotes}
-              onNotesChange={setFieldNotes}
-              onStructureNotes={structureFieldNotes}
-            />
+              <DiscoveryBriefSection
+                accountName={selectedAccountName}
+                persona={discoveryPersona}
+                context={discoveryContext}
+                notes={discoveryNotes}
+                brief={discoveryBrief}
+                loading={loadingAction === "discovery"}
+                onPersonaChange={setDiscoveryPersona}
+                onContextChange={setDiscoveryContext}
+                onNotesChange={setDiscoveryNotes}
+                onGenerate={() => generateDiscoveryBrief()}
+              />
 
-            <ProposalAssistant
-              accountName={selectedAccountName}
-              notes={proposalNotes}
-              proposal={proposal}
-              loading={loadingAction === "proposal"}
-              onNotesChange={setProposalNotes}
-              onGenerate={() => generateProposal()}
-            />
+              {!presentationMode ? (
+                <FieldVisitAssistant
+                  notes={fieldNotes}
+                  structuredNotes={structuredFieldNotes}
+                  onNotesChange={setFieldNotes}
+                  onStructureNotes={structureFieldNotes}
+                />
+              ) : null}
+
+              <ProposalAssistant
+                accountName={selectedAccountName}
+                notes={proposalNotes}
+                proposal={proposal}
+                loading={loadingAction === "proposal"}
+                onNotesChange={setProposalNotes}
+                onGenerate={() => generateProposal()}
+              />
+            </div>
+
+            <div className="hidden xl:block">
+              <div className="sticky top-6">
+                <LiveTimeline events={timeline} />
+              </div>
+            </div>
           </div>
         </main>
       </div>

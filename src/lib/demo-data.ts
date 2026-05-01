@@ -57,6 +57,12 @@ export type CrmEvent = {
   tone: "agent" | "crm" | "outbound" | "calendar";
 };
 
+export type FinancialPotential = {
+  pilot: string;
+  regionalRollout: string;
+  frameworkContract: string;
+};
+
 export const demoAccounts: DemoAccount[] = [
   {
     name: "VINCI Energies",
@@ -300,6 +306,36 @@ export function buildDemoLeads(accountName: string): DemoLead[] {
 
 export function getAccount(accountName: string) {
   return demoAccounts.find((account) => account.name === accountName) ?? demoAccounts[0];
+}
+
+export function getFinancialPotential(accountName: string): FinancialPotential {
+  const highPotential: FinancialPotential = {
+    pilot: "12 000 € – 18 000 €",
+    regionalRollout: "60 000 € – 110 000 €",
+    frameworkContract: "250 000 €+",
+  };
+
+  const nationalPotential: FinancialPotential = {
+    pilot: "15 000 € – 25 000 €",
+    regionalRollout: "80 000 € – 140 000 €",
+    frameworkContract: "300 000 €+",
+  };
+
+  const standardPotential: FinancialPotential = {
+    pilot: "8 000 € – 15 000 €",
+    regionalRollout: "40 000 € – 80 000 €",
+    frameworkContract: "150 000 €+",
+  };
+
+  if (["VINCI Energies", "Bouygues Construction", "Colas"].includes(accountName)) {
+    return highPotential;
+  }
+
+  if (["Enedis", "SNCF Réseau", "Engie"].includes(accountName)) {
+    return nationalPotential;
+  }
+
+  return standardPotential;
 }
 
 export function mockAccountAnalysis(accountName: string): AccountAnalysis {

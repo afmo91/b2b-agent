@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Loader2, RefreshCw, Shield, ThermometerSun } from "lucide-react";
+import { Brain, Euro, Loader2, RefreshCw, Shield, ThermometerSun } from "lucide-react";
 
 import { PriorityBadge } from "@/components/shared/status-badge";
 import { SectionCard } from "@/components/shared/section-card";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { AccountAnalysis } from "@/lib/ai-schemas";
-import type { DemoAccount } from "@/lib/demo-data";
+import { getFinancialPotential, type DemoAccount } from "@/lib/demo-data";
 
 export function AccountIntelligence({
   accounts,
@@ -17,6 +17,7 @@ export function AccountIntelligence({
   selectedAccountName,
   analysis,
   loading,
+  presentationMode,
   onSelectAccount,
   onAnalyze,
 }: {
@@ -25,9 +26,12 @@ export function AccountIntelligence({
   selectedAccountName: string;
   analysis: AccountAnalysis | null;
   loading: boolean;
+  presentationMode: boolean;
   onSelectAccount: (accountName: string) => void;
   onAnalyze: () => void;
 }) {
+  const financialPotential = getFinancialPotential(selectedAccountName);
+
   return (
     <SectionCard
       id="account"
@@ -70,6 +74,20 @@ export function AccountIntelligence({
             <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               {selectedAccount.signal}
             </div>
+
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3">
+              <div className="flex items-center gap-2">
+                <Euro className="size-4 text-emerald-700" />
+                <p className="text-sm font-semibold text-emerald-950">
+                  Potentiel financier estimé
+                </p>
+              </div>
+              <div className="mt-3 grid gap-2 text-sm">
+                <PotentialLine label="Pilote" value={financialPotential.pilot} />
+                <PotentialLine label="Déploiement régional" value={financialPotential.regionalRollout} />
+                <PotentialLine label="Contrat cadre multi-sites" value={financialPotential.frameworkContract} />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -93,6 +111,11 @@ export function AccountIntelligence({
                     <div className="min-w-40">
                       <Progress value={analysis.score} />
                     </div>
+                  </div>
+                  <div className={`mt-4 grid gap-2 ${presentationMode ? "md:grid-cols-3" : "md:grid-cols-3"}`}>
+                    <RevenuePill label="Pilote" value={financialPotential.pilot} />
+                    <RevenuePill label="Régional" value={financialPotential.regionalRollout} />
+                    <RevenuePill label="Contrat cadre" value={financialPotential.frameworkContract} />
                   </div>
                 </CardContent>
               </Card>
@@ -150,6 +173,24 @@ function Info({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
       <p className="mt-1 leading-6 text-slate-800">{value}</p>
+    </div>
+  );
+}
+
+function PotentialLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2">
+      <span className="text-emerald-800">{label}</span>
+      <span className="font-semibold text-emerald-950">{value}</span>
+    </div>
+  );
+}
+
+function RevenuePill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2">
+      <p className="text-xs font-medium text-emerald-800">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-emerald-950">{value}</p>
     </div>
   );
 }

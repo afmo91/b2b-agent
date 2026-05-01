@@ -15,6 +15,7 @@ export function MeetingBooker({
   selectedRep,
   selectedSlot,
   meetingCreated,
+  briefGenerated,
   onSelectRep,
   onSelectSlot,
   onCreateMeeting,
@@ -24,6 +25,7 @@ export function MeetingBooker({
   selectedRep: string;
   selectedSlot: string;
   meetingCreated: boolean;
+  briefGenerated: boolean;
   onSelectRep: (name: string) => void;
   onSelectSlot: (slot: string) => void;
   onCreateMeeting: () => void;
@@ -101,13 +103,19 @@ export function MeetingBooker({
             </div>
 
             {meetingCreated ? (
-              <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 text-emerald-700" />
-                  <div>
-                    <p className="font-medium">RDV créé, invitation envoyée et activité CRM ajoutée.</p>
-                    <p className="mt-1">
-                      Étape pipeline passée à “RDV découverte planifié”, brief de préparation prêt.
+              <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-700" />
+                  <div className="space-y-2">
+                    <p className="text-base font-semibold">
+                      RDV créé — {selectedRep} — {selectedSlot}
+                    </p>
+                    <p>Invitation envoyée au prospect — simulation</p>
+                    <p>Activité ajoutée au CRM — simulation</p>
+                    <p>
+                      {briefGenerated
+                        ? "Brief découverte généré automatiquement"
+                        : "Brief découverte prêt à générer à l’étape suivante"}
                     </p>
                   </div>
                 </div>
